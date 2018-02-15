@@ -18,7 +18,7 @@ import {
 
 import { logger } from './logger'
 
-import { Blom, BlomOptions, State } from './types'
+import { Blom, BlomOptions } from './types'
 
 import { squeezeLines } from './utils'
 
@@ -69,7 +69,7 @@ const getOptions = (): { [key: string]: Options } => ({
   },
   watch: {
     type: 'boolean',
-    describe: 'Watch files and recompile whenever they change',
+    describe: 'Watch files and recompile whenever they change'
   },
   'static-assets': {
     type: 'string',
@@ -94,15 +94,15 @@ const getOptions = (): { [key: string]: Options } => ({
   },
   'entry-client': {
     type: 'string',
-    describe: "Point entry to your app's client entry file",
+    describe: "Point entry to your app's client entry file"
   },
   'entry-server': {
     type: 'string',
-    describe: "Point entry to your app's server entry file",
+    describe: "Point entry to your app's server entry file"
   },
   'index-template': {
     type: 'string',
-    describe: 'The landing page mustache template',
+    describe: 'The landing page mustache template'
   }
 })
 
