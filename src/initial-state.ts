@@ -4,7 +4,12 @@ import { State } from './types'
 
 import { dirname, join } from 'path'
 
-import { fileOrFallback, getPackageJson, getPostcssConfig } from './utils'
+import {
+  fileOrFallback,
+  getPackageJson,
+  getPostcssConfig,
+  realpathAsync
+} from './utils'
 
 import { isString } from 'lodash'
 
@@ -12,8 +17,9 @@ import resolveFrom = require('resolve-from')
 
 export const getInitialState = async (): Promise<State> => {
   const packageJson = await getPackageJson()
-  const context = dirname(packageJson.path)
-  const home = dirname(__dirname)
+  const context = dirname(await realpathAsync(packageJson.path))
+  const home = await realpathAsync(dirname(__dirname))
+
   const indexTemplate = await fileOrFallback(
     [join(context, 'index.mustache')],
     join(home, 'index.mustache')
@@ -24,6 +30,7 @@ export const getInitialState = async (): Promise<State> => {
     context,
     home
   )
+
   const contextTypescript = resolveFrom.silent(context, 'typescript')
 
   const entries = {

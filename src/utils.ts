@@ -3,13 +3,14 @@ import { PackageJson } from './types'
 import { dirname, join } from 'path'
 import { isUndefined, join as _join, map, replace, split, trim } from 'lodash'
 import { logger } from './logger'
-import { readFile, stat } from 'fs'
+import { readFile, realpath, stat } from 'fs'
 import { promisify } from 'util'
 
 import Bluebird = require('bluebird')
 
 export const readFileAsync = promisify(readFile)
 export const statAsync = promisify(stat)
+export const realpathAsync = promisify(realpath)
 
 export const squeezeLines = (str: string) =>
   _join(

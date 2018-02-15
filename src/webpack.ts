@@ -338,6 +338,7 @@ export const webpackBaseConfiguration = (
     rules: ruleConfiguration(state)
   },
   resolve: {
+    symlinks: true,
     plugins: [
       new TsconfigPathsPlugin({
         silent: false,
