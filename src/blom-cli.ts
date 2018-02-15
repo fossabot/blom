@@ -22,8 +22,6 @@ import { Blom, BlomOptions, State } from './types'
 
 import { squeezeLines } from './utils'
 
-import { getInitialState } from './initial-state'
-
 import { blom } from './index'
 
 const commands = {
@@ -58,7 +56,7 @@ const commands = {
   }
 }
 
-const getOptions = (initialState: State): { [key: string]: Options } => ({
+const getOptions = (): { [key: string]: Options } => ({
   verbose: {
     type: 'count',
     describe: 'Increase logging level',
@@ -72,48 +70,39 @@ const getOptions = (initialState: State): { [key: string]: Options } => ({
   watch: {
     type: 'boolean',
     describe: 'Watch files and recompile whenever they change',
-    default: initialState.staticAssets
   },
   'static-assets': {
     type: 'string',
-    describe: 'The custom static assets directory path',
-    default: initialState.staticAssets
+    describe: 'The custom static assets directory path'
   },
   devtool: {
     type: 'string',
     describe:
-      "Choose a style of source mapping to enhance the debugging process. Set to 'false' to disable",
-    default: initialState.devtool
+      "Choose a style of source mapping to enhance the debugging process. Set to 'false' to disable"
   },
   'output-public-path': {
     type: 'string',
-    describe: 'Public URL of the output directory when referenced in a browser',
-    default: initialState.outputPublicPath
+    describe: 'Public URL of the output directory when referenced in a browser'
   },
   'output-path': {
     type: 'string',
-    describe: 'The output directory path',
-    default: initialState.outputPath
+    describe: 'The output directory path'
   },
   context: {
     type: 'string',
-    describe: 'The base directory, an absolute path',
-    default: initialState.context
+    describe: 'The base directory, an absolute path'
   },
   'entry-client': {
     type: 'string',
     describe: "Point entry to your app's client entry file",
-    default: initialState.context
   },
   'entry-server': {
     type: 'string',
     describe: "Point entry to your app's server entry file",
-    default: initialState.context
   },
   'index-template': {
     type: 'string',
     describe: 'The landing page mustache template',
-    default: initialState.indexTemplate
   }
 })
 
@@ -135,8 +124,7 @@ const setLogLevel = (i: number, d: number) => {
 }
 
 export const parse = async (handler: Blom) => {
-  const initialState = await getInitialState()
-  const options = getOptions(initialState)
+  const options = getOptions()
   const sharedOptions = intersection(
     ...map(commands, command => command.options)
   )
@@ -177,7 +165,7 @@ export const parse = async (handler: Blom) => {
       command: command.command,
       describe: squeezeLines(command.description),
       handler: (props: Partial<BlomOptions>) =>
-        handler(normalizeProps(props, command.options), initialState)
+        handler(normalizeProps(props, command.options))
           .then(instance => instance.run())
           .catch(e => {
             logger.error(e.message)
