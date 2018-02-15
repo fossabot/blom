@@ -11,14 +11,12 @@ declare global {
 
 declare module 'vue/types/options' {
   interface ComponentOptions<V extends Vue> {
-    asyncData?: BlomAsyncData
     $options?: any
   }
 }
 
 declare module 'vue/types/vue' {
   interface VueConstructor {
-    asyncData?: BlomAsyncData
     $options?: any
   }
 }

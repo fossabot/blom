@@ -1,15 +1,18 @@
 /* tslint:disable no-any no-submodule-imports */
 import { CombinedVueInstance } from 'vue/types/vue'
 import VueRouter, { Route } from 'vue-router'
+import { Store } from 'vuex'
 
-export interface BlomAsyncDataProps<P = any> {
-  store: P
+export interface BlomVuexAsyncDataProps<P> {
+  store: Store<P>
   route: Route
 }
 
-export type BlomAsyncData<P = any> = (
-  props: BlomAsyncDataProps<P>
+export type BlomVuexAsyncData<P> = (
+  props: BlomVuexAsyncDataProps<P>
 ) => void | Promise<void>
+
+export type BlomAsyncData<P> = BlomVuexAsyncData<P>
 
 export interface BlomCreateAppReturn {
   router: VueRouter

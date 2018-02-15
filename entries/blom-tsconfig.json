@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "preserveSymlinks": true,
     "downlevelIteration": true,
     "experimentalDecorators": true,
     "importHelpers": true,
