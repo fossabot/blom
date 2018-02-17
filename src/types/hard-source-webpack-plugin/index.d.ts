@@ -5,11 +5,14 @@ declare namespace HardSourceWebpackPlugin {
     cacheDirectory?: string
     recordsPath?: string
     configHash?: (webpackConfig: {}) => string
-    environmentHash?: false | string | {
-      root: string;
-      directories: string[];
-      files: string[];
-    }
+    environmentHash?:
+      | false
+      | string
+      | {
+          root: string
+          directories: string[]
+          files: string[]
+        }
   }
 }
 

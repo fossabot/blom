@@ -10,7 +10,10 @@ declare namespace ForkTsCheckerWebpackPlugin {
     ignoreLints?: string[]
     colors?: boolean
     logger?: any
-    formatter?: 'default' | 'codeframe' | ((message: string, useColors: boolean) => string)
+    formatter?:
+      | 'default'
+      | 'codeframe'
+      | ((message: string, useColors: boolean) => string)
     formatterOptions?: any
     silent?: boolean
     checkSyntacticErrors?: boolean

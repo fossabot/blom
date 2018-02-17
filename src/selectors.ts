@@ -125,38 +125,40 @@ export const SSRClientPath = createSelector(
   (op, f) => path.join(op, f)
 )
 
-export const dependencies = createSelector(packageJson, pj =>
-  fromPairs<boolean>(
-    map([
-      'lodash',
-      'node-sass',
-      'sass-loader',
-      'stylus',
-      'stylus-loader',
-      'less',
-      'less-loader'
-    ], (dependency: string): [string, boolean] => [
-      dependency,
-      includes(
-        keys(assign({}, pj.dependencies, pj.devDependencies)),
-        dependency
+export const dependencies = createSelector(
+  packageJson,
+  pj =>
+    fromPairs<boolean>(
+      map(
+        [
+          'lodash',
+          'node-sass',
+          'sass-loader',
+          'stylus',
+          'stylus-loader',
+          'less',
+          'less-loader'
+        ],
+        (dependency: string): [string, boolean] => [
+          dependency,
+          includes(
+            keys(assign({}, pj.dependencies, pj.devDependencies)),
+            dependency
+          )
+        ]
       )
-    ])
-  ) as {
-    lodash: boolean
-    'node-sass': boolean
-    'sass-loader': boolean
-    'stylus': boolean
-    'stylus-loader': boolean
-    'less': boolean
-    'less-loader': boolean
-  }
+    ) as {
+      lodash: boolean
+      'node-sass': boolean
+      'sass-loader': boolean
+      stylus: boolean
+      'stylus-loader': boolean
+      less: boolean
+      'less-loader': boolean
+    }
 )
 
-export const condLodash = createSelector(
-  dependencies,
-  dep => dep.lodash
-)
+export const condLodash = createSelector(dependencies, dep => dep.lodash)
 
 export const condSass = createSelector(
   dependencies,

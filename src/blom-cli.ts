@@ -1,6 +1,7 @@
-/* tslint:disable no-string-literal promise-function-async */
-import argv = require('yargs')
-import { Options } from 'yargs'
+/* tslint:disable no-string-literal promise-function-async, no-duplicate-imports */
+import * as argv from 'yargs'
+import { Argv, CommandModule, Options } from 'yargs'
+
 
 import {
   assign,
@@ -161,7 +162,7 @@ export const parse = async (handler: Blom) => {
     .version()
 
   forOwn(
-    mapValues(commands, (command): argv.CommandModule => ({
+    mapValues(commands, (command): CommandModule => ({
       command: command.command,
       describe: squeezeLines(command.description),
       handler: (props: Partial<BlomOptions>) =>
@@ -172,7 +173,7 @@ export const parse = async (handler: Blom) => {
 
             process.exit(1)
           }),
-      builder: (yargs: argv.Argv): argv.Argv =>
+      builder: (yargs: Argv): Argv =>
         yargs.options(pick(options, command.options))
     })),
     (value, _) => argv.command(value)

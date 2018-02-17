@@ -1,9 +1,9 @@
-import { dirname, join } from 'path'
-import Bluebird = require('bluebird')
-import normalizePackage = require('normalize-package-data')
-import pkgUp = require('pkg-up')
+import { join } from 'path'
+import Bluebird from 'bluebird'
+import normalizePackage from 'normalize-package-data'
+import pkgUp from 'pkg-up'
 import { PackageJson } from './types'
-import findNpmPerfix = require('find-npm-prefix')
+import findNpmPerfix from 'find-npm-prefix'
 import {
   compact,
   isEmpty,
@@ -19,7 +19,7 @@ import {
 import { logger } from './logger'
 import { promisify } from 'util'
 import { readFile, realpath, stat } from 'fs'
-import resolveFrom = require('resolve-from')
+import resolveFrom from 'resolve-from'
 
 export const readFileAsync = promisify(readFile)
 export const statAsync = promisify(stat)
@@ -110,7 +110,8 @@ export const fileOrFallback = async (
 
 // return fallback
 
-export const packageWarn = (msg: string) => logger.verbose(`package.json: ${msg}`)
+export const packageWarn = (msg: string) =>
+  logger.verbose(`package.json: ${msg}`)
 
 export const normalizePackageJson = (
   data: PackageJson,

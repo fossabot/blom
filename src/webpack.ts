@@ -6,33 +6,32 @@
 
 // import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer'
 // import { Store } from 'redux'
-import * as path from 'path'
-import CleanWebpackPlugin = require('clean-webpack-plugin')
-import CompressionWebpackPlugin = require('compression-webpack-plugin')
-import CopyWebpackPlugin = require('copy-webpack-plugin')
+import path from 'path'
+import CleanWebpackPlugin from 'clean-webpack-plugin'
+import CompressionWebpackPlugin from 'compression-webpack-plugin'
+import CopyWebpackPlugin from 'copy-webpack-plugin'
 import CssoWebpackPlugin from 'csso-webpack-plugin'
-import ExtractTextPlugin = require('extract-text-webpack-plugin')
-import FriendlyErrorsWebpackPlugin = require('friendly-errors-webpack-plugin')
-import HtmlWebpackPlugin = require('html-webpack-plugin')
-import ProgressBarWebpackPlugin = require('progress-bar-webpack-plugin')
-import TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin')
-import UglifyJsPlugin = require('uglifyjs-webpack-plugin')
-import VueSSRClientPlugin = require('vue-server-renderer/client-plugin')
-import VueSSRServerPlugin = require('vue-server-renderer/server-plugin')
+import ExtractTextPlugin from 'extract-text-webpack-plugin'
+import FriendlyErrorsWebpackPlugin from 'friendly-errors-webpack-plugin'
+import HtmlWebpackPlugin from 'html-webpack-plugin'
+import ProgressBarWebpackPlugin from 'progress-bar-webpack-plugin'
+import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin'
+import UglifyJsPlugin from 'uglifyjs-webpack-plugin'
+import VueSSRClientPlugin from 'vue-server-renderer/client-plugin'
+import VueSSRServerPlugin from 'vue-server-renderer/server-plugin'
 import chalk from 'chalk'
-import connectHistoryApiFallback = require('connect-history-api-fallback')
-import express = require('express')
-import merge = require('webpack-merge')
-import nodeExternals = require('webpack-node-externals')
-import webpack = require('webpack')
-import webpackDevMiddleware = require('webpack-dev-middleware')
-import webpackHotMiddleware = require('webpack-hot-middleware')
+import connectHistoryApiFallback from 'connect-history-api-fallback'
+import express from 'express'
+import merge from 'webpack-merge'
+import nodeExternals from 'webpack-node-externals'
+import webpack, { Options, Stats } from 'webpack'
+import webpackDevMiddleware from 'webpack-dev-middleware'
+import webpackHotMiddleware from 'webpack-hot-middleware'
 import { BundleRenderer, createBundleRenderer } from 'vue-server-renderer'
-import { Options, Stats } from 'webpack'
 import { fs as memfs } from 'memfs'
-import ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
-import HardSourceWebpackPlugin = require('hard-source-webpack-plugin')
-import nodeObjectHash = require('node-object-hash')
+import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin'
+import HardSourceWebpackPlugin from 'hard-source-webpack-plugin'
+import nodeObjectHash from 'node-object-hash'
 
 import {
   assign,
@@ -43,8 +42,6 @@ import {
   isUndefined,
   map,
   noop,
-  omit,
-  pick,
   pickBy,
   union
 } from 'lodash'

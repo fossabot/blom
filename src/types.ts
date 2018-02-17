@@ -1,12 +1,9 @@
-import webpack = require('webpack')
 import { AnyAction } from 'redux'
 import { MinifyOptions } from 'uglifyjs-webpack-plugin'
 import { Express } from 'express'
-import { Compiler, Configuration, MultiCompiler } from 'webpack'
+import webpack, { Compiler, Configuration, MultiCompiler } from 'webpack'
 import { LoggerLevel } from '@escapace/logger'
-import {
-  Package
-} from 'normalize-package-data'
+import { Package } from 'normalize-package-data'
 
 export interface Action<P> extends AnyAction {
   type: string
@@ -43,8 +40,8 @@ export interface BlomEnvironment {
 }
 
 export interface State extends BlomOptions, BlomEnvironment {
-  packageJson: PackageJson,
-  version: string,
+  packageJson: PackageJson
+  version: string
   modulePaths: string[]
   assetsDirectory: string
   entries: {

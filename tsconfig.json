@@ -11,6 +11,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": true,
     "outDir": "lib",
+    "esModuleInterop": true,
     "suppressImplicitAnyIndexErrors": true,
     "target": "es5",
     "baseUrl": ".",
