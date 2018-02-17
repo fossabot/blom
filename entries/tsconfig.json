@@ -6,14 +6,5 @@
       "es2015",
       "es2015.promise"
     ]
-  },
-  "files": [
-    "./blom-babel-polyfill.ts",
-    "./blom-entry-client.ts",
-    "./blom-entry-server.ts",
-    "./blom-globals.d.ts",
-    "./blom-shims.d.ts",
-    "./blom-types.ts",
-    "./blom-webpack-hot-middleware.ts"
-  ]
+  }
 }

@@ -30,6 +30,9 @@ import webpackHotMiddleware = require('webpack-hot-middleware')
 import { BundleRenderer, createBundleRenderer } from 'vue-server-renderer'
 import { Options, Stats } from 'webpack'
 import { fs as memfs } from 'memfs'
+import ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
+import HardSourceWebpackPlugin = require('hard-source-webpack-plugin')
+import nodeObjectHash = require('node-object-hash')
 
 import {
   assign,
@@ -41,6 +44,8 @@ import {
   map,
   noop,
   omit,
+  pick,
+  pickBy,
   union
 } from 'lodash'
 
@@ -48,7 +53,7 @@ import { BlomCompilationError } from './errors'
 
 import { logger } from './logger'
 
-import { readFileAsync } from './utils'
+import { readFileAsync, resolveModule } from './utils'
 
 import {
   BlomWebpackDevelopmentServerResolve,
@@ -63,11 +68,15 @@ import {
   SSRServerPath,
   assetsDirectory,
   compressionTest,
-  // condBuild,
+  condDebug,
   condDevelopment,
+  // condBuild,
   condHMR,
   condInteractive,
+  condLess,
   condProduction,
+  condSass,
+  condStylus,
   condWatch,
   context,
   devtool,
@@ -76,17 +85,30 @@ import {
   home,
   host,
   loaderTest,
+  modulePaths,
   nodeEnvSelector,
   outputPath,
   port,
+  postcssConfig,
   publicPath,
   sourceMap,
+  stateIdentifiers,
   staticAssets,
   statsOption,
   template,
-  typescript,
-  uglifyOptions
+  uglifyOptions,
+  vueEnv
 } from './selectors'
+
+const configHash = (state: State) => {
+  const hash = nodeObjectHash({
+    sort: true
+  }).hash(stateIdentifiers(state))
+
+  logger.verbose(`Configuration hash '${hash}'`)
+
+  return hash
+}
 
 const assetsPath = (state: State, _destination: string) => {
   const destination = path.posix.join(assetsDirectory(state), _destination)
@@ -102,22 +124,44 @@ const watchOptions = () => ({
   poll: 1000
 })
 
-const typescriptLoaderConfiguration = (state: State) =>
+const typescriptLoader = (state: State) =>
   compact([
+    {
+      loader: 'thread-loader',
+      options: {
+        workers: ForkTsCheckerWebpackPlugin.TWO_CPUS_FREE,
+        workerParallelJobs: 50,
+        poolTimeout: 2000,
+        poolParallelJobs: 200,
+        name: 'typescript-pool'
+      }
+    },
     condProduction(state) && {
       loader: 'babel-loader',
       options: {
         babelrc: false,
         cacheDirectory: true,
-        plugins: [require.resolve('@babel/plugin-syntax-dynamic-import')],
+        plugins: [
+          resolveModule(
+            '@babel/plugin-syntax-dynamic-import',
+            modulePaths(state)
+          )
+        ],
         presets: [
           [
-            require.resolve('@babel/preset-env'),
+            resolveModule('@babel/preset-env', modulePaths(state)),
             {
               configPath: context(state),
               modules: false,
               useBuiltIns: 'entry',
-              loose: true
+              loose: true,
+              ignoreBrowserslistConfig: vueEnv(state) === 'server',
+              targets:
+                vueEnv(state) === 'server'
+                  ? {
+                      node: true
+                    }
+                  : undefined
             }
           ]
         ]
@@ -128,9 +172,11 @@ const typescriptLoaderConfiguration = (state: State) =>
       options: {
         logLevel: 'error',
         silent: true,
-        compiler: typescript(state),
+        compiler: resolveModule('typescript', modulePaths(state)),
         appendTsSuffixTo: [/\.vue$/i],
         configFile: path.join(context(state), 'tsconfig.json'),
+        happyPackMode: true,
+        transpileOnly: true,
         compilerOptions: {
           downlevelIteration: true,
           importHelpers: true,
@@ -142,7 +188,7 @@ const typescriptLoaderConfiguration = (state: State) =>
     }
   ])
 
-const cssLoaderConfigration = (state: State) => {
+const VueBoundLoaders = (state: State) => {
   const cssLoader: webpack.NewLoader = {
     loader: 'css-loader',
     options: {
@@ -156,13 +202,13 @@ const cssLoaderConfigration = (state: State) => {
     options: {
       sourceMap: sourceMap(),
       config: {
-        path: context(state)
+        path: postcssConfig(state)
       }
     }
   }
 
   // generate loader string to be used with extract text plugin
-  const cssLoaderConfiguration = (
+  const configure = (
     loader?: string,
     // tslint:disable-next-line no-any
     loaderOptions?: { [name: string]: any }
@@ -190,35 +236,37 @@ const cssLoaderConfigration = (state: State) => {
     }
   }
 
+  // TODO: null-loader on SSR
   // https://vue-loader.vuejs.org/en/configurations/extract-css.html
-  return {
-    css: cssLoaderConfiguration(),
-    postcss: cssLoaderConfiguration(),
-    less: cssLoaderConfiguration('less'),
-    sass: cssLoaderConfiguration('sass', { indentedSyntax: true }),
-    scss: cssLoaderConfiguration('sass'),
-    stylus: cssLoaderConfiguration('stylus'),
-    styl: cssLoaderConfiguration('stylus'),
-    ts: typescriptLoaderConfiguration(state)
-    // tsx: typescriptLoaderConfiguration(state)
-  }
+  return pickBy(
+    {
+      css: configure(),
+      postcss: configure(),
+      less: condLess(state) ? configure('less') : undefined,
+      sass: condSass(state)
+        ? configure('sass', { indentedSyntax: true })
+        : undefined,
+      scss: condSass(state) ? configure('sass') : undefined,
+      stylus: condStylus(state) ? configure('stylus') : undefined,
+      styl: condStylus(state) ? configure('stylus') : undefined,
+      ts: typescriptLoader(state),
+      js: typescriptLoader(state)
+      // tsx: typescriptLoaderConfiguration(state)
+    },
+    p => !isUndefined(p)
+  )
 }
 
-const loaderConfiguration = (
-  state: State,
-  exclude?: string[]
-): webpack.Rule[] => {
+const VueBoundLoaderRules = (state: State): webpack.Rule[] => {
   const output: webpack.Rule[] = []
-  const loaders = cssLoaderConfigration(state)
+  const loaders = VueBoundLoaders(state)
 
-  forOwn(omit(loaders, exclude || []), (_, key) => {
-    const loader = loaders[key]
-
+  forOwn(loaders, (loader, key) => {
     output.push({
       test: new RegExp(`\\.${key}$`, 'i'),
       use: loader,
       // TODO: other directories
-      include: includes(['ts' /* , 'tsx' */], key)
+      include: includes(['ts', 'js'], key)
         ? [path.join(context(state), 'src'), path.join(home(state), 'entries')]
         : undefined
     })
@@ -227,7 +275,7 @@ const loaderConfiguration = (
   return output
 }
 
-const ruleConfiguration = (state: State): webpack.Rule[] => {
+const webpackRules = (state: State): webpack.Rule[] => {
   return union<webpack.Rule>(
     [
       {
@@ -242,11 +290,12 @@ const ruleConfiguration = (state: State): webpack.Rule[] => {
         test: /\.vue$/i,
         loader: 'vue-loader',
         options: {
-          loaders: cssLoaderConfigration(state),
+          loaders: VueBoundLoaders(state),
           cssSourceMap: sourceMap(),
           postcss: {
             useConfigFile: false
           },
+          optimizeSSR: vueEnv(state) === 'server',
           hotReload: condHMR(state),
           transformToRequire: {
             video: ['src', 'poster'],
@@ -257,7 +306,7 @@ const ruleConfiguration = (state: State): webpack.Rule[] => {
         }
       }
     ],
-    loaderConfiguration(state),
+    VueBoundLoaderRules(state),
     [
       {
         test: loaderTest(state).image,
@@ -319,8 +368,8 @@ export const webpackBaseConfiguration = (
         // https://github.com/vuejs-templates/webpack/issues/1110
         allChunks: true
       }),
-    condProduction(state) && new webpack.HashedModuleIdsPlugin(),
-    condProduction(state) && new webpack.optimize.ModuleConcatenationPlugin()
+    new webpack.HashedModuleIdsPlugin(),
+    condProduction(state) && new webpack.optimize.ModuleConcatenationPlugin(),
     // TODO: review this
     // condDevelopment(state) &&
     //   new webpack.WatchIgnorePlugin([]),
@@ -331,32 +380,65 @@ export const webpackBaseConfiguration = (
     //   analyzerHost: host(state),
     //   analyzerPort: port(state) + 1
     // })
+    forkTsCheckerWebpackPlugin(state),
+    condWatch(state) &&
+      !condDebug(state) &&
+      new HardSourceWebpackPlugin({
+        cacheDirectory: path.join(
+          context(state),
+          'node_modules',
+          '.cache',
+          'blom',
+          '[confighash]'
+        ),
+        recordsPath: path.join(
+          context(state),
+          'node_modules',
+          '.cache',
+          'blom',
+          '[confighash]',
+          'records.json'
+        ),
+        configHash: () => configHash(state),
+        environmentHash: {
+          root: context(state),
+          // TODO: other directories ?
+          directories: compact(['src', staticAssets(state)]),
+          files: [
+            '.postcssrc',
+            '.postcssrc.js',
+            '.postcssrc.json',
+            '.postcssrc.yaml',
+            'package-lock.json',
+            'package.json',
+            'postcss.config.js',
+            'tsconfig.json',
+            'yarn.lock'
+          ]
+        }
+      })
   ]),
   module: {
-    // TODO: review this
-    noParse: /es6-promise\.js$/, // Avoid webpack shimming process
-    rules: ruleConfiguration(state)
+    noParse: (content: string) => {
+      // TODO: core-js &c
+
+      return /(es6-promise\.js)/.test(content)
+    },
+    rules: webpackRules(state)
   },
   resolve: {
     symlinks: true,
     plugins: [
       new TsconfigPathsPlugin({
-        silent: false,
+        silent: true,
         configFile: path.join(context(state), 'tsconfig.json')
       })
     ],
     extensions: ['.ts', '.js', '.vue', '.json'],
-    // TODO: sandbox plugin
-    modules: [
-      path.join(context(state), 'node_modules'),
-      path.join(home(state), 'node_modules')
-    ]
+    modules: modulePaths(state)
   },
   resolveLoader: {
-    modules: [
-      path.join(context(state), 'node_modules'),
-      path.join(home(state), 'node_modules')
-    ]
+    modules: modulePaths(state)
   },
   performance: {
     hints: false
@@ -380,6 +462,7 @@ const webpackInteractivePlugins = (state: State): webpack.Plugin[] =>
   compact([
     condInteractive(state) &&
       new ProgressBarWebpackPlugin({
+        summary: false,
         complete: chalk.green('█'),
         incomplete: chalk.white('█'),
         format: `  :bar ${chalk.green.bold(':percent')} :msg`,
@@ -391,14 +474,24 @@ const webpackInteractivePlugins = (state: State): webpack.Plugin[] =>
       })
   ])
 
-const webpackDefinePlugin = (
-  state: State,
-  vueEnv: 'client' | 'server'
-): webpack.Plugin =>
+const forkTsCheckerWebpackPlugin = (state: State): webpack.Plugin =>
+  new ForkTsCheckerWebpackPlugin({
+    tsconfig: path.join(context(state), 'tsconfig.json'),
+    // TODO: other directories
+    watch: [path.join(context(state), 'src')],
+    workers: 1,
+    async: false,
+    formatter: 'codeframe',
+    silent: true,
+    checkSyntacticErrors: true,
+    vue: false
+  })
+
+const webpackDefinePlugin = (state: State): webpack.Plugin =>
   new webpack.DefinePlugin({
     'process.env': {
       NODE_ENV: JSON.stringify(nodeEnvSelector(state)),
-      VUE_ENV: JSON.stringify(vueEnv)
+      VUE_ENV: JSON.stringify(vueEnv(state))
     }
   })
 
@@ -408,7 +501,7 @@ const webpackDevelopmentConfiguration = (state: State): webpack.Configuration =>
       main: [entries(state).webpackHotMiddleware, entries(state).client]
     },
     plugins: compact([
-      webpackDefinePlugin(state, 'client'),
+      webpackDefinePlugin(state),
       condHMR(state) && new webpack.HotModuleReplacementPlugin(),
       condHMR(state) && new webpack.NamedModulesPlugin(),
       condHMR(state) && new webpack.NoEmitOnErrorsPlugin(),
@@ -429,9 +522,7 @@ const webpackDevelopmentConfiguration = (state: State): webpack.Configuration =>
     ])
   })
 
-const webpackProductionConfiguration = (
-  state: State
-): webpack.Configuration[] => [
+const webpackProductionServerConfiguration = (state: State) =>
   merge(webpackBaseConfiguration(state), {
     entry: {
       main: [entries(state).babelPolyfill, entries(state).server]
@@ -462,18 +553,20 @@ const webpackProductionConfiguration = (
     // into a single JSON file. The default file name will be
     // `vue-ssr-server-bundle.json`
     plugins: compact([
-      webpackDefinePlugin(state, 'server'),
+      webpackDefinePlugin(state),
       new VueSSRServerPlugin({
         filename: SSRServerFilename(state)
       })
     ])
-  }),
+  })
+
+const webpackProductionClientConfiguration = (state: State) =>
   merge(webpackBaseConfiguration(state), {
     entry: {
       main: [entries(state).babelPolyfill, entries(state).client]
     },
     plugins: compact([
-      webpackDefinePlugin(state, 'client'),
+      webpackDefinePlugin(state),
       new CssoWebpackPlugin(),
       new UglifyJsPlugin({
         parallel: true,
@@ -532,6 +625,12 @@ const webpackProductionConfiguration = (
       ...webpackInteractivePlugins(state)
     ])
   })
+
+const webpackProductionConfiguration = (
+  state: State
+): webpack.Configuration[] => [
+  webpackProductionServerConfiguration(assign({}, state, { vueEnv: 'server' })),
+  webpackProductionClientConfiguration(assign({}, state))
 ]
 
 export const webpackDevelopmentServer = (

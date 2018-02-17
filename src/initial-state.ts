@@ -6,19 +6,19 @@ import { dirname, join } from 'path'
 
 import {
   fileOrFallback,
+  getBlomPackageJson,
+  getModulePaths,
   getPackageJson,
   getPostcssConfig,
   realpathAsync
 } from './utils'
 
-import { isString } from 'lodash'
-
-import resolveFrom = require('resolve-from')
-
 export const getInitialState = async (): Promise<State> => {
   const packageJson = await getPackageJson()
   const context = dirname(await realpathAsync(packageJson.path))
   const home = await realpathAsync(dirname(__dirname))
+  const modulePaths = await getModulePaths(context, home)
+  const blomPackageJson = await getBlomPackageJson(home)
 
   const indexTemplate = await fileOrFallback(
     [join(context, 'index.mustache')],
@@ -30,8 +30,6 @@ export const getInitialState = async (): Promise<State> => {
     context,
     home
   )
-
-  const contextTypescript = resolveFrom.silent(context, 'typescript')
 
   const entries = {
     webpackHotMiddleware: join(
@@ -45,6 +43,10 @@ export const getInitialState = async (): Promise<State> => {
   }
 
   return {
+    packageJson: packageJson.content,
+    version: blomPackageJson.version,
+    vueEnv: 'client',
+    modulePaths,
     assetsDirectory: 'assets',
     interactive: false,
     logLevel: 'silent',
@@ -55,7 +57,9 @@ export const getInitialState = async (): Promise<State> => {
       output: {
         comments: /^\**!|@preserve|@license|@cc_on/
       },
-      safari10: true,
+      mangle: {
+        safari10: true
+      },
       warnings: false
     },
     context,
@@ -74,9 +78,6 @@ export const getInitialState = async (): Promise<State> => {
     port: process.env.NODE_PORT ? parseInt(process.env.NODE_PORT, 10) : 8000,
     postcssConfig,
     staticAssets: 'static',
-    typescript: isString(contextTypescript)
-      ? contextTypescript
-      : require.resolve('typescript'),
     extensions: {
       media: ['mp4', 'webm', 'ogg', 'mp3', 'wav', 'flac', 'aac'],
       font: ['woff', 'woff2', 'eot', 'ttf', 'otf'],

@@ -1,12 +1,25 @@
-import parentPackageJson = require('parent-package-json')
-import { PackageJson } from './types'
 import { dirname, join } from 'path'
-import { isUndefined, join as _join, map, replace, split, trim } from 'lodash'
-import { logger } from './logger'
-import { readFile, realpath, stat } from 'fs'
-import { promisify } from 'util'
-
 import Bluebird = require('bluebird')
+import normalizePackage = require('normalize-package-data')
+import pkgUp = require('pkg-up')
+import { PackageJson } from './types'
+import findNpmPerfix = require('find-npm-prefix')
+import {
+  compact,
+  isEmpty,
+  isUndefined,
+  join as _join,
+  map,
+  noop,
+  replace,
+  split,
+  trim,
+  uniq
+} from 'lodash'
+import { logger } from './logger'
+import { promisify } from 'util'
+import { readFile, realpath, stat } from 'fs'
+import resolveFrom = require('resolve-from')
 
 export const readFileAsync = promisify(readFile)
 export const statAsync = promisify(stat)
@@ -97,25 +110,37 @@ export const fileOrFallback = async (
 
 // return fallback
 
+export const packageWarn = (msg: string) => logger.verbose(`package.json: ${msg}`)
+
+export const normalizePackageJson = (
+  data: PackageJson,
+  warn: ((msg: string) => void) = packageWarn,
+  strict: boolean = true
+): PackageJson => {
+  normalizePackage(data, warn, strict)
+
+  return data
+}
+
+export const getBlomPackageJson = async (home: string): Promise<PackageJson> =>
+  normalizePackageJson(
+    JSON.parse(await readFileAsync(join(home, 'package.json'), 'utf8')),
+    noop,
+    false
+  )
+
 export const getPackageJson = async (): Promise<{
   path: string
   content: PackageJson
 }> => {
-  const path = join(process.cwd(), 'package.json')
+  const path = await pkgUp(process.cwd())
 
-  if (await isFile(path)) {
+  if (path) {
     return {
-      path,
-      content: JSON.parse(await readFileAsync(join(path), 'utf8'))
-    }
-  }
-
-  const parent = parentPackageJson(process.cwd())
-
-  if (parent) {
-    return {
-      path: dirname(parent.path),
-      content: parent.parse() as PackageJson
+      path: path,
+      content: normalizePackageJson(
+        JSON.parse(await readFileAsync(path, 'utf8'))
+      )
     }
   }
 
@@ -141,4 +166,37 @@ export const getPostcssConfig = async (
     ],
     join(home, 'postcss.config.js')
   )
+}
+
+export const getModulePaths = async (
+  context: string,
+  home: string
+): Promise<string[]> => {
+  const modulePaths = Bluebird.filter(
+    map(uniq([await findNpmPerfix(context), await findNpmPerfix(home)]), d =>
+      join(d, 'node_modules')
+    ),
+    isDirectory
+  )
+
+  if (isEmpty(modulePaths)) {
+    throw new Error('Module path disovery fail')
+  }
+
+  return modulePaths
+}
+
+export const resolveModule = (
+  moduleId: string,
+  modulePaths: string[]
+): string => {
+  const modulePath = uniq(
+    compact(map(modulePaths, path => resolveFrom.silent(path, moduleId)))
+  )
+
+  if (isEmpty(modulePath)) {
+    throw new Error(`Failed to resolve '${moduleId}'`)
+  }
+
+  return modulePath[0]
 }

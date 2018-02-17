@@ -2,10 +2,11 @@ import webpack = require('webpack')
 
 declare namespace ProgressBarWebpackPlugin {
   interface PluginOptions {
-    complete: string
-    incomplete: string
-    format: string
-    clear: boolean
+    summary?: any
+    complete?: string
+    incomplete?: string
+    format?: string
+    clear?: boolean
   }
 }
 

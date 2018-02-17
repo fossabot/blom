@@ -4,6 +4,9 @@ import { MinifyOptions } from 'uglifyjs-webpack-plugin'
 import { Express } from 'express'
 import { Compiler, Configuration, MultiCompiler } from 'webpack'
 import { LoggerLevel } from '@escapace/logger'
+import {
+  Package
+} from 'normalize-package-data'
 
 export interface Action<P> extends AnyAction {
   type: string
@@ -40,6 +43,9 @@ export interface BlomEnvironment {
 }
 
 export interface State extends BlomOptions, BlomEnvironment {
+  packageJson: PackageJson,
+  version: string,
+  modulePaths: string[]
   assetsDirectory: string
   entries: {
     client: string
@@ -49,8 +55,8 @@ export interface State extends BlomOptions, BlomEnvironment {
   }
   SSRClientFilename: string
   SSRServerFilename: string
+  vueEnv: 'client' | 'server'
   uglifyOptions: MinifyOptions
-  typescript: string
   home: string
   postcssConfig: string
   extensions: {
@@ -60,9 +66,7 @@ export interface State extends BlomOptions, BlomEnvironment {
   }
 }
 
-export interface PackageJson {
-  name: string
-  versing: string
+export interface PackageJson extends Package {
   postcss: Object
 }
 
