@@ -13,6 +13,9 @@
   "bin": {
     "blom": "./bin/blom"
   },
+  "engines": {
+    "node": ">=9.0.0"
+  },
   "types": "./types/index.d.ts",
   "files": [
     "bin",
@@ -43,7 +46,6 @@
     "@types/webpack-merge": "^4.1.2",
     "@types/webpack-node-externals": "^1.6.2",
     "@types/yargs": "^11.0.0",
-    "ts-node": "^4.1.0",
     "tslint": "^5.9.1",
     "tslint-config-escapace": "^1.0.0",
     "tslint-config-prettier": "^1.8.0",
@@ -97,6 +99,7 @@
     "tslib": "^1.9.0",
     "uglifyjs-webpack-plugin": "^1.2.0",
     "url-loader": "^0.6.2",
+    "v8-compile-cache": "^1.1.2",
     "vue-loader": "^14.1.1",
     "vue-router": "^3.0.1",
     "vue-server-renderer": "^2.5.13",

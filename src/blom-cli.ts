@@ -1,7 +1,7 @@
-/* tslint:disable no-string-literal promise-function-async, no-duplicate-imports */
+/* tslint:disable no-string-literal promise-function-async no-import-side-effect no-duplicate-imports */
+
 import * as argv from 'yargs'
 import { Argv, CommandModule, Options } from 'yargs'
-
 
 import {
   assign,
@@ -18,12 +18,8 @@ import {
 } from 'lodash'
 
 import { logger } from './logger'
-
 import { Blom, BlomOptions } from './types'
-
-import { squeezeLines } from './utils'
-
-import { blom } from './index'
+import { squeezeLines } from './squeezeLines'
 
 const commands = {
   start: {
@@ -124,11 +120,13 @@ const setLogLevel = (i: number, d: number) => {
   return logger.level
 }
 
-export const parse = async (handler: Blom) => {
+export const parse = async () => {
   const options = getOptions()
   const sharedOptions = intersection(
     ...map(commands, command => command.options)
   )
+
+  // const handler = () => import('./index')
 
   const normalizeProps = (
     // tslint:disable-next-line no-any
@@ -165,14 +163,17 @@ export const parse = async (handler: Blom) => {
     mapValues(commands, (command): CommandModule => ({
       command: command.command,
       describe: squeezeLines(command.description),
-      handler: (props: Partial<BlomOptions>) =>
-        handler(normalizeProps(props, command.options))
+      handler: async (props: Partial<BlomOptions>) => {
+        const handler = await import('./index')
+
+        handler.default(normalizeProps(props, command.options))
           .then(instance => instance.run())
           .catch(e => {
             logger.error(e.message)
 
             process.exit(1)
-          }),
+          })
+      },
       builder: (yargs: Argv): Argv =>
         yargs.options(pick(options, command.options))
     })),
@@ -189,7 +190,7 @@ export const parse = async (handler: Blom) => {
     .strict().argv
 }
 
-parse(blom).catch(e => {
+parse().catch(e => {
   logger.error(e.message)
 
   process.exit(1)

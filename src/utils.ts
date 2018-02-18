@@ -8,12 +8,8 @@ import {
   compact,
   isEmpty,
   isUndefined,
-  join as _join,
   map,
   noop,
-  replace,
-  split,
-  trim,
   uniq
 } from 'lodash'
 import { logger } from './logger'
@@ -21,17 +17,11 @@ import { promisify } from 'util'
 import { readFile, realpath, stat } from 'fs'
 import resolveFrom from 'resolve-from'
 
+export { squeezeLines } from './squeezeLines'
+
 export const readFileAsync = promisify(readFile)
 export const statAsync = promisify(stat)
 export const realpathAsync = promisify(realpath)
-
-export const squeezeLines = (str: string) =>
-  _join(
-    map(split(str, /\r?\n/), line =>
-      trim(replace(line, new RegExp('[s]{2,}', 'g'), ' '))
-    ),
-    ' '
-  )
 
 /**
  * Removes leading indents from a template string without removing all leading whitespace

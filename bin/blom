@@ -1,3 +1,4 @@
 #!/usr/bin/env node
 
-require("../lib/blom-cli");
+require('v8-compile-cache')
+require('../lib/blom-cli')
