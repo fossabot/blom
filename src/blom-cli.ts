@@ -1,11 +1,14 @@
 /* tslint:disable no-string-literal promise-function-async no-import-side-effect no-duplicate-imports */
 
-import * as argv from 'yargs'
-import { Argv, CommandModule, Options } from 'yargs'
+// Yargs import breaks help
+import yargs = require('yargs')
+import { Arguments, Argv, Options } from 'yargs'
 
 import {
   assign,
   camelCase,
+  capitalize,
+  difference,
   forOwn,
   intersection,
   keys,
@@ -18,7 +21,7 @@ import {
 } from 'lodash'
 
 import { logger } from './logger'
-import { Blom, BlomOptions } from './types'
+import { BlomOptions } from './types'
 import { squeezeLines } from './squeezeLines'
 
 const commands = {
@@ -29,24 +32,26 @@ const commands = {
         development mode, and performs server-side rendering in production
         mode.`,
     options: [
-      'verbose',
-      'quiet',
       'watch',
       'context',
       'index-template',
-      'devtool'
+      'devtool',
+      'static-assets',
+      'entry-client',
+      'entry-server'
     ]
   },
   build: {
     command: 'build [options]',
     description: `Compiles the application for production deployment.`,
     options: [
-      'verbose',
-      'quiet',
       'watch',
       'context',
       'index-template',
       'devtool',
+      'static-assets',
+      'entry-client',
+      'entry-server',
       'output-public-path',
       'output-path'
     ]
@@ -54,16 +59,6 @@ const commands = {
 }
 
 const getOptions = (): { [key: string]: Options } => ({
-  verbose: {
-    type: 'count',
-    describe: 'Increase logging level',
-    alias: 'v'
-  },
-  quiet: {
-    type: 'count',
-    describe: 'Decrease logging level',
-    alias: 'q'
-  },
   watch: {
     type: 'boolean',
     describe: 'Watch files and recompile whenever they change'
@@ -99,7 +94,17 @@ const getOptions = (): { [key: string]: Options } => ({
   },
   'index-template': {
     type: 'string',
-    describe: 'The landing page mustache template'
+    describe: 'The index page template'
+  },
+  verbose: {
+    type: 'count',
+    describe: 'Increase logging level',
+    alias: 'v'
+  },
+  quiet: {
+    type: 'count',
+    describe: 'Decrease logging level',
+    alias: 'q'
   }
 })
 
@@ -153,40 +158,67 @@ export const parse = async () => {
       }
     )
 
-  argv
-    .usage('Usage: $0 <command> [options]')
-    .help('help')
-    .alias('help', 'h')
-    .version()
+  const argv = yargs.usage('Usage: $0 <command> [options]')
 
   forOwn(
-    mapValues(commands, (command): CommandModule => ({
+    mapValues(commands, (command, commandName) => ({
       command: command.command,
-      describe: squeezeLines(command.description),
-      handler: async (props: Partial<BlomOptions>) => {
-        const handler = await import('./index')
+      description: squeezeLines(command.description),
+      builder: (_argv: Argv) =>
+        _argv.options(
+          mapValues(
+            pick(options, difference(command.options, sharedOptions)),
+            v => {
+              v.group = `${capitalize(commandName)} Options:`
 
-        handler.default(normalizeProps(props, command.options))
-          .then(instance => instance.run())
+              return v
+            }
+          )
+        ),
+      handler: (props: Arguments) => {
+        import('./index')
+          .then(handler =>
+            handler
+              .default(normalizeProps(props, command.options))
+              .then(instance => instance.run())
+              .catch(e => {
+                logger.error(e.message)
+
+                process.exit(1)
+              })
+          )
           .catch(e => {
             logger.error(e.message)
 
             process.exit(1)
           })
-      },
-      builder: (yargs: Argv): Argv =>
-        yargs.options(pick(options, command.options))
+      }
     })),
-    (value, _) => argv.command(value)
+    (value, _) =>
+      argv.command(
+        value.command,
+        value.description,
+        value.builder,
+        value.handler
+      )
   )
 
   // tslint:disable-next-line no-unused-expression
-  argv
-    .options(pick(options, sharedOptions))
+  yargs
+    .options(
+      mapValues(pick(options, sharedOptions), v => {
+        v.group = 'Basic Options:'
+
+        return v
+      })
+    )
+    .help()
+    .alias('h', 'help')
+    .options(pick(options, ['verbose', 'quiet']))
+    .version()
     .epilogue(environmentHelp)
     .wrap(80)
     .demandCommand(1, 'You need at least one command before moving on')
-    .help()
     .strict().argv
 }
 

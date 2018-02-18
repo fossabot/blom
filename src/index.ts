@@ -141,7 +141,7 @@ const prepareOptions = async (
     async () => isFile(entryClient),
     {
       level: 'error',
-      message: `no such file: '${entry}'`
+      message: `no such file: '${entryClient}'`
     },
     () => {
       options.entries.client = entryClient
@@ -154,7 +154,7 @@ const prepareOptions = async (
     async () => isFile(entryServer),
     {
       level: 'error',
-      message: `no such file: '${entry}'`
+      message: `no such file: '${entryServer}'`
     },
     () => {
       options.entries.client = entryServer

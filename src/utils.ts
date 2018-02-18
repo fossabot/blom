@@ -4,14 +4,7 @@ import normalizePackage from 'normalize-package-data'
 import pkgUp from 'pkg-up'
 import { PackageJson } from './types'
 import findNpmPerfix from 'find-npm-prefix'
-import {
-  compact,
-  isEmpty,
-  isUndefined,
-  map,
-  noop,
-  uniq
-} from 'lodash'
+import { compact, isEmpty, isUndefined, map, noop, uniq } from 'lodash'
 import { logger } from './logger'
 import { promisify } from 'util'
 import { readFile, realpath, stat } from 'fs'
