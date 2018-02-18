@@ -32,6 +32,7 @@ import { fs as memfs } from 'memfs'
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin'
 import HardSourceWebpackPlugin from 'hard-source-webpack-plugin'
 import nodeObjectHash from 'node-object-hash'
+import LodashModuleReplacementPlugin from 'lodash-webpack-plugin'
 
 import {
   assign,
@@ -67,10 +68,11 @@ import {
   compressionTest,
   condDebug,
   condDevelopment,
-  // condBuild,
   condHMR,
   condInteractive,
+  // condBuild,
   condLess,
+  condLodash,
   condProduction,
   condSass,
   condStylus,
@@ -82,6 +84,8 @@ import {
   home,
   host,
   loaderTest,
+  lodashId,
+  lodashOptions,
   modulePaths,
   nodeEnvSelector,
   outputPath,
@@ -138,12 +142,19 @@ const typescriptLoader = (state: State) =>
       options: {
         babelrc: false,
         cacheDirectory: true,
-        plugins: [
+        plugins: compact([
           resolveModule(
             '@babel/plugin-syntax-dynamic-import',
             modulePaths(state)
-          )
-        ],
+          ),
+          condLodash(state) && [
+            resolveModule('babel-lodash-plugin', modulePaths(state)),
+            {
+              id: lodashId,
+              cwd: context(state)
+            }
+          ]
+        ]),
         presets: [
           [
             resolveModule('@babel/preset-env', modulePaths(state)),
@@ -565,6 +576,7 @@ const webpackProductionClientConfiguration = (state: State) =>
     plugins: compact([
       webpackDefinePlugin(state),
       new CssoWebpackPlugin(),
+      new LodashModuleReplacementPlugin(lodashOptions(state)),
       new UglifyJsPlugin({
         parallel: true,
         sourceMap: sourceMap(),

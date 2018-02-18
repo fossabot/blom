@@ -4,6 +4,7 @@ import { Express } from 'express'
 import webpack, { Compiler, Configuration, MultiCompiler } from 'webpack'
 import { LoggerLevel } from '@escapace/logger'
 import { Package } from 'normalize-package-data'
+import { Options as LodashOptions } from 'lodash-webpack-plugin'
 
 export interface Action<P> extends AnyAction {
   type: string
@@ -40,6 +41,10 @@ export interface BlomEnvironment {
 }
 
 export interface State extends BlomOptions, BlomEnvironment {
+  lodashOptions: LodashOptions
+  requiredDependencies: string[]
+  lodashModuleNames: string[]
+  dependencies: string[]
   packageJson: PackageJson
   version: string
   modulePaths: string[]
@@ -71,7 +76,8 @@ export type LogMessageLevels = 'error' | 'warn' | 'debug'
 
 export interface LogMessage {
   message: string
-  meta?: Error
+  // tslint:disable-next-line no-any
+  meta?: any
   level: LogMessageLevels
 }
 

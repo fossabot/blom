@@ -42,7 +42,39 @@ export const getInitialState = async (): Promise<State> => {
     server: join(context, 'src', 'entry-server.ts')
   }
 
+  const lodashModuleNames = ['lodash-es', 'lodash', 'lodash-fp']
+
+  const requiredDependencies = [
+    'vue',
+    'vue-router',
+    'typescript'
+  ]
+
+  const dependencies = [
+    'node-sass',
+    'sass-loader',
+    'stylus',
+    'stylus-loader',
+    'less',
+    'less-loader'
+  ]
+    .concat(lodashModuleNames)
+    .concat(requiredDependencies)
+
   return {
+    lodashOptions: {
+      cloning: true,
+      caching: true,
+      collections: true,
+      unicode: true,
+      memoizing: true,
+      coercions: true,
+      flattening: true,
+      paths: true
+    },
+    requiredDependencies,
+    lodashModuleNames,
+    dependencies,
     packageJson: packageJson.content,
     version: blomPackageJson.version,
     vueEnv: 'client',
@@ -53,6 +85,7 @@ export const getInitialState = async (): Promise<State> => {
     entries,
     SSRClientFilename: '.ssr/vue-ssr-client-manifest.json',
     SSRServerFilename: '.ssr/vue-ssr-server-bundle.json',
+    // TODO: confirm this
     uglifyOptions: {
       output: {
         comments: /^\**!|@preserve|@license|@cc_on/

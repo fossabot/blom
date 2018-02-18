@@ -12,7 +12,11 @@ import {
   isFunction,
   isString,
   isUndefined,
-  pick
+  join as _join,
+  keys,
+  pick,
+  pickBy,
+  some
 } from 'lodash'
 
 import { isDirectory, isFile, squeezeLines } from './utils'
@@ -33,7 +37,7 @@ import {
   State
 } from './types'
 
-import { condDevelopment, condProduction } from './selectors'
+import { condDevelopment, condProduction, dependencies } from './selectors'
 
 import { webpackDevelopmentServer, webpackProductionServer } from './webpack'
 
@@ -49,7 +53,7 @@ const checkCondition = async (): Promise<{
   done: () => boolean
   put: (
     condition: () => Promise<boolean>,
-    message: LogMessage,
+    message: (() => LogMessage) | LogMessage,
     onSuccess?: () => void
   ) => Promise<void>
 }> => {
@@ -57,11 +61,14 @@ const checkCondition = async (): Promise<{
 
   return {
     put: async (condition, message, onSuccess?): Promise<void> => {
-      if (!await condition()) {
+      const cond = await condition()
+      const _message = isFunction(message) ? message() : message
+
+      if (!cond) {
         messages.push({
-          level: message.level,
-          message: message.message,
-          meta: message.meta
+          level: _message.level,
+          message: squeezeLines(_message.message),
+          meta: _message.meta
         })
       } else {
         if (isFunction(onSuccess)) {
@@ -71,7 +78,7 @@ const checkCondition = async (): Promise<{
     },
     done: (): boolean => {
       forEach(messages, message =>
-        logger[message.level](squeezeLines(message.message), message.meta)
+        logger[message.level](message.message, message.meta)
       )
 
       if (filter(messages, message => message.level === 'warn').length !== 0) {
@@ -291,21 +298,51 @@ const createStore = (initialState: State): Store<State> =>
     return state
   }, initialState)
 
+const validateState = async (state: State): Promise<void> => {
+  const { done, put, messages } = await checkCondition()
+
+  let failedDependencies: string
+
+  await put(
+    async () => {
+      const deps = pick(dependencies(state), state.requiredDependencies)
+      const fail = some(deps, d => d === false)
+
+      if (fail) {
+        failedDependencies = _join(keys(pickBy(deps, d => d === false)), ' ')
+      }
+
+      return !fail
+    },
+    () => ({
+      level: 'error',
+      message: 'The following dependencies are missing:',
+      meta: `npm install --save-dev ${failedDependencies}\n`
+    })
+  )
+
+  if (!done()) {
+    throw new BlomValidationError(
+      'Blom validation error, cannot continue.',
+      messages
+    )
+  }
+}
+
 export const blom: Blom = async (props, initialState?) => {
   logger.debug('Props', props)
 
   const initial: State = isUndefined(initialState)
     ? await getInitialState()
     : initialState
+
   const store = createStore(initial)
 
   const { options, validation, messages } = await prepareOptions(
     pickOptions(props, initial)
   )
 
-  const success = validation()
-
-  if (!success) {
+  if (!validation()) {
     throw new BlomValidationError(
       'Blom validation error, cannot continue.',
       messages
@@ -315,7 +352,10 @@ export const blom: Blom = async (props, initialState?) => {
   }
 
   const state = store.getState()
+
   logger.debug('Blom State', state)
+
+  await validateState(state)
 
   if (condDevelopment(state)) {
     return webpackDevelopmentServer(state)

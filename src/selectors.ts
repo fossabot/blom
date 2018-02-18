@@ -3,17 +3,19 @@ import * as path from 'path'
 import { createSelector } from 'reselect'
 import { PackageJson, State } from './types'
 import { MinifyOptions } from 'uglifyjs-webpack-plugin'
+import { Options as LodashOptions } from 'lodash-webpack-plugin'
 import {
-  assign,
+  filter,
   flatten,
   fromPairs,
-  includes,
   join,
-  keys,
   map,
   mapValues,
+  some,
   values
 } from 'lodash'
+
+import { checkDependency } from './utils'
 
 // Simple Selectors
 
@@ -33,12 +35,15 @@ export const version = (state: State) => state.version
 export const packageJson = (state: State) => state.packageJson
 export const publicPath = (state: State) => state.outputPublicPath
 export const postcssConfig = (state: State) => state.postcssConfig
+export const lodashModuleNames = (state: State) => state.lodashModuleNames
 export const sourceMap = () => true
 export const staticAssets = (state: State) => state.staticAssets
 export const template = (state: State) => state.indexTemplate
 export const modulePaths = (state: State) => state.modulePaths
 export const uglifyOptions = (state: State): MinifyOptions =>
   state.uglifyOptions
+export const lodashOptions = (state: State): LodashOptions =>
+  state.lodashOptions
 export const entries = (state: State) => state.entries
 export const assetsDirectory = (state: State) => state.assetsDirectory
 export const vueEnv = (state: State) => state.vueEnv
@@ -126,39 +131,29 @@ export const SSRClientPath = createSelector(
 )
 
 export const dependencies = createSelector(
+  (state: State) => state.dependencies,
   packageJson,
-  pj =>
+  modulePaths,
+  (deps, pj, mp): { [key: string]: boolean } =>
     fromPairs<boolean>(
-      map(
-        [
-          'lodash',
-          'node-sass',
-          'sass-loader',
-          'stylus',
-          'stylus-loader',
-          'less',
-          'less-loader'
-        ],
-        (dependency: string): [string, boolean] => [
-          dependency,
-          includes(
-            keys(assign({}, pj.dependencies, pj.devDependencies)),
-            dependency
-          )
-        ]
-      )
-    ) as {
-      lodash: boolean
-      'node-sass': boolean
-      'sass-loader': boolean
-      stylus: boolean
-      'stylus-loader': boolean
-      less: boolean
-      'less-loader': boolean
-    }
+      map(deps, (dependency: string): [string, boolean] => [
+        dependency,
+        checkDependency(dependency, pj, mp)
+      ])
+    )
 )
 
-export const condLodash = createSelector(dependencies, dep => dep.lodash)
+export const condLodash = createSelector(
+  dependencies,
+  lodashModuleNames,
+  (dep, lmn): boolean => some(lmn, l => dep[l])
+)
+
+export const lodashId = createSelector(
+  dependencies,
+  lodashModuleNames,
+  (dep, lmn): string[] => filter(lmn, l => dep[l])
+)
 
 export const condSass = createSelector(
   dependencies,

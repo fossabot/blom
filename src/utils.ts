@@ -1,10 +1,20 @@
+import findNpmPerfix from 'find-npm-prefix'
 import { join } from 'path'
-import Bluebird from 'bluebird'
 import normalizePackage from 'normalize-package-data'
 import pkgUp from 'pkg-up'
 import { PackageJson } from './types'
-import findNpmPerfix from 'find-npm-prefix'
-import { compact, isEmpty, isUndefined, map, noop, uniq } from 'lodash'
+import Bluebird from 'bluebird'
+import {
+  assign,
+  compact,
+  includes,
+  isEmpty,
+  isUndefined,
+  keys,
+  map,
+  noop,
+  uniq
+} from 'lodash'
 import { logger } from './logger'
 import { promisify } from 'util'
 import { readFile, realpath, stat } from 'fs'
@@ -173,7 +183,7 @@ export const getModulePaths = async (
 export const resolveModule = (
   moduleId: string,
   modulePaths: string[]
-): string => {
+): string | boolean => {
   const modulePath = uniq(
     compact(map(modulePaths, path => resolveFrom.silent(path, moduleId)))
   )
@@ -184,3 +194,23 @@ export const resolveModule = (
 
   return modulePath[0]
 }
+
+export const hasModule = (moduleId: string, modulePaths: string[]): boolean => {
+  try {
+    resolveModule(moduleId, modulePaths)
+
+    return true
+  } catch {
+    return false
+  }
+}
+
+export const checkDependency = (
+  dependency: string,
+  packageJson: PackageJson,
+  modulePaths: string[]
+): boolean =>
+  includes(
+    keys(assign({}, packageJson.dependencies, packageJson.devDependencies)),
+    dependency
+  ) && hasModule(dependency, modulePaths)
