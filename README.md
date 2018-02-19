@@ -2,7 +2,8 @@
 
 [![build status](https://secure.travis-ci.org/escapace/blom.png)](https://travis-ci.org/escapace/blom)
 [![Greenkeeper badge](https://badges.greenkeeper.io/escapace/blom.svg)](https://greenkeeper.io/)
-[![license](https://img.shields.io/badge/license-Mozilla%20Public%20License%20Version%202.0-blue.svg)]()
+[![license](https://img.shields.io/badge/license-Mozilla%20Public%20License%20Version%202.0-blue.svg)][![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fescapace%2Fblom.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fescapace%2Fblom?ref=badge_shield)
+()
 
 **Work in progress**
 
@@ -106,3 +107,7 @@ Cypress is a brand-new end-to-end testing framework not dependent on Selenium.
 
 
 
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fescapace%2Fblom.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fescapace%2Fblom?ref=badge_large)
